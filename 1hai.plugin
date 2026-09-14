@@ -1,0 +1,8 @@
+#!name = 一嗨租车直连
+#!desc = 一嗨租车相关域名强制直连，避免代理影响访问
+#!author = SOLHK
+#!system = iOS,iPadOS
+#!type = normal
+
+[Rule]
+DOMAIN-SUFFIX,1hai.cn,DIRECT
