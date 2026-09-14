@@ -1,13 +1,19 @@
 #!name = 一嗨租车直连
-#!desc = 一嗨租车相关域名强制直连并绕过 Loon TUN，避免代理影响访问
+#!desc = 一嗨租车及其旧域名、定位相关域名强制直连并绕过 Loon TUN
 #!author = SOLHK
 #!system = iOS,iPadOS
 #!type = normal
 
 [General]
-bypass-tun = 1hai.cn,*.1hai.cn
-skip-proxy = 1hai.cn,*.1hai.cn
-real-ip = 1hai.cn,*.1hai.cn
+bypass-tun = 1hai.cn,*.1hai.cn,ehicar.com,*.ehicar.com,ehic.com.cn,*.ehic.com.cn,amap.com,*.amap.com,autonavi.com,*.autonavi.com
+skip-proxy = 1hai.cn,*.1hai.cn,ehicar.com,*.ehicar.com,ehic.com.cn,*.ehic.com.cn,amap.com,*.amap.com,autonavi.com,*.autonavi.com
+real-ip = 1hai.cn,*.1hai.cn,ehicar.com,*.ehicar.com,ehic.com.cn,*.ehic.com.cn,amap.com,*.amap.com,autonavi.com,*.autonavi.com
 
 [Rule]
 DOMAIN-SUFFIX,1hai.cn,DIRECT
+DOMAIN-SUFFIX,ehicar.com,DIRECT
+DOMAIN-SUFFIX,ehic.com.cn,DIRECT
+DOMAIN-SUFFIX,amap.com,DIRECT
+DOMAIN-SUFFIX,autonavi.com,DIRECT
+DOMAIN-KEYWORD,1hai,DIRECT
+DOMAIN-KEYWORD,ehai,DIRECT
