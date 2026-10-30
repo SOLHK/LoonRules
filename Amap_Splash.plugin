@@ -1,0 +1,31 @@
+#!name = STRA 高德开屏广告修复 1.0.0
+#!desc = 针对 2026-10-30 HAR 中漏拦的实时开屏接口；返回空 multipart 广告列表，并保留旧开屏接口拦截。仅处理开屏，不替代其他页面净化。需要开启 MitM 与复写。已做离线检查，尚未在 iPhone/Loon 实机验收。
+#!author = STRA
+#!system = iOS,iPadOS
+#!loon_version = 3.5.1(978)
+#!date = 2026-10-30
+#!tag = 高德地图,开屏广告,定制规则
+#!type = normal
+
+# 基于上传 HAR：AMapiPhone/17.02.2.2009，191 条记录。
+# 漏拦接口返回 multipart，内含 jsonData 和 imgData1.jpg。
+# Base64 仅为下面这份人工构造的空响应；不包含 HAR 中的凭据或素材。
+# 不拦截 c3.amap.com、地图瓦片、定位、搜索、路线、登录、支付等整个域名。
+# 不改动 /ws/shield/dsp/app/startup/init；该响应混合了正常业务配置。
+# 无远程脚本、无上报、无后台任务、无整域封锁。
+# Loon 文档规定 response.body.mock 在发往上游之前生成本地响应。
+# 这是补充插件：其他页面去广告插件可保留；避免同一 URL 的重复改写。
+# 上线后的缓存处理与客户端空列表兼容性，仍需真机验证。
+
+[Rewrite]
+# 1. 本次 HAR 已确认的实时开屏接口。
+# 保持 multipart + jsonData 结构，data.custom_list=[]，不带图片分段。
+# 验收标记：响应头 X-STRA-Amap-Splash: empty-rt-v1。
+response if ${url} ~= /^https:\/\/amap-aos-info-nogw\.amap\.com(?::443)?\/+ws\/aos\/alimama\/splash_screen_rt\/?(?:\?|$)/i then response.body.mock("form-data", "LS1TVFJBX0FtYXBfU3BsYXNoX0VtcHR5XzIwMjYxMDMwX3YxDQpDb250ZW50LURpc3Bvc2l0aW9uOiBmb3JtLWRhdGE7IG5hbWU9Impzb25EYXRhIg0KDQp7InJlc3VsdCI6InRydWUiLCJjb2RlIjoiMSIsIm1lc3NhZ2UiOiJTdWNjZXNzZnVsLiIsInZlcnNpb24iOiIxLjBfYW1hcC1hb3MtaW5mby1ub2d3IiwiZGF0YSI6eyJjdXN0b21fbGlzdCI6W10sImVycmNvZGUiOiIxIiwiZXh0ZGF0YSI6IiIsInN0YXR1cyI6Im9rIn19DQotLVNUUkFfQW1hcF9TcGxhc2hfRW1wdHlfMjAyNjEwMzBfdjEtLQ0K", 200, true) | response.header.set("Content-Type", "multipart/form-data; boundary=STRA_Amap_Splash_Empty_20261030_v1") | response.header.set("Cache-Control", "no-store, no-cache, must-revalidate") | response.header.set("Pragma", "no-cache") | response.header.set("X-STRA-Amap-Splash", "empty-rt-v1")
+
+# 2. 前面截图中的旧版开屏接口；本 HAR 未包含该接口请求。
+# 延续原先的空 JSON 拦截行为，不据此声称当前 HAR 已验证该路径。
+request if ${url} ~= /^https:\/\/m5\.amap\.com(?::443)?\/+ws\/valueadded\/alimama\/splash_screen\/?(?:\?|$)/i then reject_dict(200)
+
+[Mitm]
+hostname = amap-aos-info-nogw.amap.com,m5.amap.com
