@@ -1,0 +1,20 @@
+#!name = CTM Buddy 去开屏广告
+#!desc = 基于 CTMBuddy 6.4.64 抓包制作：清空开屏广告列表，可选关闭启动推广页。只改写指定接口，不封锁 CTM 域名，不引用外部脚本。需开启复写和 MitM。已通过离线数据测试，未做手机端实测。
+#!author = Custom
+#!loon_version = 3.5.1(978)
+#!date = 2026-11-14
+#!tag = 去广告
+
+[Argument]
+skip_landing = switch,true,tag=跳过启动推广页,desc=将 Buddy-Landing-Page 的 enable 改为 false；关闭本项仍保留开屏广告列表清理。
+
+[Rewrite]
+# 仅在成功响应且广告列表为数组时清空；保留 code、message 和其他配置。
+response if ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-cms-server\/p\/advertise\/by\/openingAdv(?:\?.*)?$/ && ${request.method} == "POST" && ${response.status} == 200 then response.json.jq(`. as $original | try (if type == "object" and .code == "10000000" and (.data | type) == "object" and (.data.buddyContentVo | type) == "array" then .data.buddyContentVo = [] else . end) catch $original`)
+
+# 此键在抓包中是 JSON 字符串：解析后仅改 enable，再编码回字符串。
+# 未返回此键、返回异常结构或解析失败时保留原响应；不改登录及支付配置。
+response if ${skip_landing} == true && ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-conf-server\/sysParam\/byParamNameList\/front(?:\?.*)?$/ && ${request.method} == "GET" && ${response.status} == 200 then response.json.jq(`. as $original | try (if type == "object" and .code == "10000000" and (.data | type) == "object" and (.data | has("Buddy-Landing-Page")) then .data["Buddy-Landing-Page"] |= (if type == "string" then . as $config | try (fromjson | if type == "object" and has("enable") then .enable = false | tojson else $config end) catch $config elif type == "object" and has("enable") then .enable = false else . end) else . end) catch $original`)
+
+[Mitm]
+hostname = www.ctm.net
