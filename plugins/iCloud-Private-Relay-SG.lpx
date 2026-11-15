@@ -1,0 +1,11 @@
+#!name = iCloud 私密转送 · 新加坡测试
+#!desc = 将 iCloud 私密转送相关域名交由手动选定的新加坡节点处理；仅用于连通性排查，不能绕过苹果地区资格限制。VPN/Loon 与私密转送可能冲突。
+#!author = SOLHK
+#!homepage = https://github.com/SOLHK/LoonRules
+#!tag = iCloud,Private Relay,SG,诊断
+#!type = normal
+
+[Rule]
+DOMAIN,mask.icloud.com,PROXY
+DOMAIN,mask-h2.icloud.com,PROXY
+DOMAIN,mask-api.icloud.com,PROXY
