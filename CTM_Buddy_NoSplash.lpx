@@ -1,12 +1,17 @@
-#!name = CTM Buddy 去开屏广告
-#!desc = 基于 CTMBuddy 6.4.64 抓包制作：清空开屏广告列表，可选关闭启动推广页。只改写指定接口，不封锁 CTM 域名，不引用外部脚本。需开启复写和 MitM。已通过离线数据测试，未做手机端实测。
+#!name = CTM Buddy 去广告
+#!desc = 清理 CTM Buddy 开屏广告、首页弹窗、悬浮推广、顶部轮播及底部横幅；各首页广告位可独立开关。基于 6.4.64 抓包更新，单文件内联复写。需开启复写和 MitM，更新后完全退出并重新打开 CTM Buddy。已通过抓包数据离线验证，未做手机端实测。
 #!author = Custom
 #!loon_version = 3.5.1(978)
-#!date = 2026-11-14
+#!date = 2026-11-16
 #!tag = 去广告
 
 [Argument]
 skip_landing = switch,true,tag=跳过启动推广页,desc=将 Buddy-Landing-Page 的 enable 改为 false；关闭本项仍保留开屏广告列表清理。
+
+remove_home_popup = switch,true,tag=去首页弹窗,desc=去除首页活动弹窗，包括全城 AI 揭密行动。
+remove_home_float = switch,true,tag=去首页悬浮推广,desc=去除首页悬浮活动图标。
+remove_home_top = switch,true,tag=去首页顶部轮播,desc=去除首页顶部推广轮播。
+remove_home_bottom = switch,true,tag=去首页底部横幅,desc=去除首页底部横幅，包括通讯服务减免措施查询；需要该入口时关闭本项。
 
 [Rewrite]
 # 仅在成功响应且广告列表为数组时清空；保留 code、message 和其他配置。
@@ -16,5 +21,20 @@ response if ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-cms-server\/p\/adv
 # 未返回此键、返回异常结构或解析失败时保留原响应；不改登录及支付配置。
 response if ${skip_landing} == true && ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-conf-server\/sysParam\/byParamNameList\/front(?:\?.*)?$/ && ${request.method} == "GET" && ${response.status} == 200 then response.json.jq(`. as $original | try (if type == "object" and .code == "10000000" and (.data | type) == "object" and (.data | has("Buddy-Landing-Page")) then .data["Buddy-Landing-Page"] |= (if type == "string" then . as $config | try (fromjson | if type == "object" and has("enable") then .enable = false | tojson else $config end) catch $config elif type == "object" and has("enable") then .enable = false else . end) else . end) catch $original`)
 
+# 共享接口按 advCode 精确处理，保留列表外壳、popularWords 和其他槽位。
+# 不处理服务中心、商户入口、导航或账户数据。
+# 首页弹窗：全城 AI 揭密行动等活动，和 openingAdv 是不同广告位。
+response if ${remove_home_popup} == true && ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-cms-server\/p\/advertise\/by\/adv(?:\?.*)?$/ && ${request.method} == "POST" && ${response.status} == 200 then response.json.jq(`. as $original | try (if type == "object" and .code == "10000000" and (.data | type) == "object" then if (.data.list | type) == "array" then .data.list |= map(if type == "object" then if .advCode == "BuddyHomePopupAd" and (.buddyContentVo | type) == "array" then .buddyContentVo = [] else . end else . end) else . end else . end) catch $original`)
+
+# 首页悬浮推广。
+response if ${remove_home_float} == true && ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-cms-server\/p\/advertise\/by\/adv(?:\?.*)?$/ && ${request.method} == "POST" && ${response.status} == 200 then response.json.jq(`. as $original | try (if type == "object" and .code == "10000000" and (.data | type) == "object" then if (.data.list | type) == "array" then .data.list |= map(if type == "object" then if .advCode == "BuddyHomeFloatAd" and (.buddyContentVo | type) == "array" then .buddyContentVo = [] else . end else . end) else . end else . end) catch $original`)
+
+# 首页顶部推广轮播。
+response if ${remove_home_top} == true && ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-cms-server\/p\/advertise\/by\/adv(?:\?.*)?$/ && ${request.method} == "POST" && ${response.status} == 200 then response.json.jq(`. as $original | try (if type == "object" and .code == "10000000" and (.data | type) == "object" then if (.data.list | type) == "array" then .data.list |= map(if type == "object" then if .advCode == "BuddyHomeTopAd" and (.buddyContentVo | type) == "array" then .buddyContentVo = [] else . end else . end) else . end else . end) catch $original`)
+
+# 首页底部横幅；含服务查询宣传，因此提供独立开关。
+response if ${remove_home_bottom} == true && ${url} ~= /^https:\/\/www\.ctm\.net\/crm_api\/crm-cms-server\/p\/advertise\/by\/adv(?:\?.*)?$/ && ${request.method} == "POST" && ${response.status} == 200 then response.json.jq(`. as $original | try (if type == "object" and .code == "10000000" and (.data | type) == "object" then if (.data.list | type) == "array" then .data.list |= map(if type == "object" then if .advCode == "BuddyHomeBottomAd" and (.buddyContentVo | type) == "array" then .buddyContentVo = [] else . end else . end) else . end else . end) catch $original`)
+
 [Mitm]
 hostname = www.ctm.net
+
